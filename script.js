@@ -455,4 +455,312 @@ function onSquareClick(r, c) {
 }
 
 // NOTE: The rest of your logic continues below unchanged...
+function getValidMoves(r, c) {
+  const piece = board[r][c];
+  if(!piece) return [];
+
+  let moves = [];
+
+  // Find possible moves for each piece type
+  for(let rr=0; rr<boardSize; rr++){
+    for(let cc=0; cc<boardSize; cc++){
+      if(canMove(r,c,rr,cc)){
+        moves.push([rr, cc]);
+      }
+    }
+  }
+  return moves;
+}
+
+function canMove(r1, c1, r2, c2) {
+  const piece = board[r1][c1];
+  if(!piece) return false;
+
+  const target = board[r2][c2];
+  if(target && target.player === piece.player) return false;
+
+  const dr = r2 - r1;
+  const dc = c2 - c1;
+  const absDr = Math.abs(dr);
+  const absDc = Math.abs(dc);
+
+  switch(piece.type){
+    case 'P': return canPawnMove(r1,c1,r2,c2,piece);
+    case 'R': return canRookMove(r1,c1,r2,c2);
+    case 'N': return canKnightMove(dr,dc);
+    case 'B': return canBishopMove(r1,c1,r2,c2);
+    case 'Q': return canQueenMove(r1,c1,r2,c2);
+    case 'K': return canKingMove(absDr,absDc);
+    case 'A': return canArcherMove(r1,c1,r2,c2);
+    case 'W': return canDiplomatMove(absDr,absDc);
+  }
+  return false;
+}
+
+function canPawnMove(r1,c1,r2,c2,piece){
+  const direction = piece.player === 1 ? 1 : -1;
+  const startRow = piece.player === 1 ? 1 : 8;
+  const target = board[r2][c2];
+
+  // Move forward 1 if empty
+  if(c1 === c2 && r2 === r1 + direction && !target) return true;
+
+  // Move forward 2 if at start and path clear
+  if(c1 === c2 && r1 === startRow && r2 === r1 + 2*direction && !target && !board[r1 + direction][c1]) return true;
+
+  // Capture diagonally
+  if(Math.abs(c2 - c1) === 1 && r2 === r1 + direction && target && target.player !== piece.player) return true;
+
+  return false;
+}
+
+function canRookMove(r1,c1,r2,c2){
+  if(r1 !== r2 && c1 !== c2) return false;
+  if(isPathBlocked(r1,c1,r2,c2)) return false;
+  return true;
+}
+
+function canKnightMove(dr, dc){
+  return (Math.abs(dr) === 2 && Math.abs(dc) === 1) || (Math.abs(dr) ===1 && Math.abs(dc) === 2);
+}
+
+function canBishopMove(r1,c1,r2,c2){
+  if(Math.abs(r2 - r1) !== Math.abs(c2 - c1)) return false;
+  if(isPathBlocked(r1,c1,r2,c2)) return false;
+  return true;
+}
+
+function canQueenMove(r1,c1,r2,c2){
+  if(r1 === r2 || c1 === c2) return canRookMove(r1,c1,r2,c2);
+  if(Math.abs(r2 - r1) === Math.abs(c2 - c1)) return canBishopMove(r1,c1,r2,c2);
+  return false;
+}
+
+function canKingMove(absDr, absDc){
+  return absDr <= 1 && absDc <= 1;
+}
+
+function canArcherMove(r1,c1,r2,c2){
+  const dr = r2 - r1;
+  const dc = c2 - c1;
+
+  // Archer moves or captures exactly 2 squares any direction, jumps over pieces
+  if(
+    (Math.abs(dr) === 2 && dc === 0) ||
+    (Math.abs(dc) === 2 && dr === 0) ||
+    (Math.abs(dr) === 2 && Math.abs(dc) === 2)
+  ) return true;
+
+  return false;
+}
+
+function canDiplomatMove(absDr, absDc){
+  // Diplomat moves like king (1 square any direction)
+  return absDr <=1 && absDc <=1;
+}
+
+function isPathBlocked(r1,c1,r2,c2){
+  const dr = Math.sign(r2-r1);
+  const dc = Math.sign(c2-c1);
+  let r = r1 + dr;
+  let c = c1 + dc;
+
+  while(r !== r2 || c !== c2){
+    if(board[r][c]) return true;
+    r += dr;
+    c += dc;
+  }
+  return false;
+}
+
+function movePiece(r1, c1, r2, c2) {
+  const piece = board[r1][c1];
+  const target = board[r2][c2];
+
+  // Diplomat does not move when converting
+  if(piece.type === 'W' && !target && (Math.abs(r2 - r1) <= 1 && Math.abs(c2 - c1) <= 1)) {
+    board[r2][c2] = piece;
+    board[r1][c1] = null;
+  } else if (piece.type === 'W' && target && target.player !== piece.player) {
+    return;
+  } else {
+    // Normal move and capture
+    if (target) {
+      addPointsForCapture(target);
+      if (target.type === 'K') {
+        renderBoard();
+        setTimeout(() => {
+          alert(`King captured! Player ${piece.player === 1 ? 'Black' : 'White'} wins round ${round}.`);
+          endRound();
+        }, 100);
+        boardElement.style.pointerEvents = 'none';
+        return;
+      }
+    }
+    board[r2][c2] = piece;
+    board[r1][c1] = null;
+  }
+
+  // Pawn promotion
+  if (piece.type === 'P' && (r2 === 0 || r2 === boardSize - 1)) {
+    showPromotionModal(r2, c2);
+  } else {
+    switchPlayer();
+  }
+}
+
+function showPromotionModal(r, c){
+  promotionModal.style.display = 'flex';
+  promotionOptions.innerHTML = '';
+
+  ['Q','R','B','A','N'].forEach(type => {
+    const btn = document.createElement('button');
+    btn.textContent = piecesUnicode[type];
+    btn.onclick = () => {
+      board[r][c].type = type;
+      promotionModal.style.display = 'none';
+      switchPlayer();
+      renderBoard();
+    };
+    promotionOptions.appendChild(btn);
+  });
+}
+
+function updateTurnDisplay(){
+  turnDisplay.textContent = `Turn: ${currentPlayer === 1 ? 'Black' : 'White'}`;
+}
+
+const roundNumDisplay = document.getElementById('roundNum');
+function updateRoundDisplay() {
+  if (roundNumDisplay) roundNumDisplay.textContent = round;
+}
+
+// Update points display
+function updatePointsDisplay() {
+  blackPointsDisplay.textContent = blackPoints;
+  whitePointsDisplay.textContent = whitePoints;
+}
+
+function updateTotalScoreDisplay() {
+  const blackTotalCell = document.getElementById('totalBlackScore');
+  const whiteTotalCell = document.getElementById('totalWhiteScore');
+  if (blackTotalCell) blackTotalCell.textContent = blackTotalScore;
+  if (whiteTotalCell) whiteTotalCell.textContent = whiteTotalScore;
+}
+
+// Update points when a piece is captured
+function addPointsForCapture(capturedPiece) {
+  if (!capturedPiece) return;
+  const pts = piecePoints[capturedPiece.type] || 0;
+  if (capturedPiece.player === 1) {
+    whitePoints += pts;
+  } else if (capturedPiece.player === 2) {
+    blackPoints += pts;
+  }
+  updatePointsDisplay();
+}
+
+// Move timer
+function startTimer() {
+  timeLeft = moveTimeSeconds;
+  timerDisplay.textContent = `Time Left: ${timeLeft}s`;
+  clearInterval(timerId);
+  timerId = setInterval(() => {
+    timeLeft--;
+    timerDisplay.textContent = `Time Left: ${timeLeft}s`;
+    if(timeLeft <= 0){
+      clearInterval(timerId);
+      alert(`Time's up! Player ${currentPlayer === 1 ? 'Black' : 'White'} loses turn.`);
+      switchPlayer();
+      selectedPiece = null;
+      validMoves = [];
+      renderBoard();
+    }
+  }, 1000);
+}
+
+function resetTimer(){
+  clearInterval(timerId);
+  startTimer();
+}
+
+// Init
+function initGame(){
+  createEmptyBoard();
+  setupPieces();
+  updateTurnDisplay();
+  renderBoard();
+  updatePointsDisplay();
+  updateTotalScoreDisplay();
+  startTimer();
+}
+
+let round = 1;
+let maxRounds = 4;
+let blackTotalScore = 0;
+let whiteTotalScore = 0;
+let gameEnded = false;
+
+let scoreHistoryArr = [];
+
+function endRound() {
+  // Add current round points to total scores
+  blackTotalScore += blackPoints;
+  whiteTotalScore += whitePoints;
+
+  // Save this round's scores
+  scoreHistoryArr.push({
+    round: round,
+    black: blackPoints,
+    white: whitePoints
+  });
+  updateScoreHistory();
+  updateTotalScoreDisplay();
+
+  alert(`Scores after round ${round}:\nBlack: ${blackTotalScore}\nWhite: ${whiteTotalScore}`);
+
+  round++;
+  if (round > maxRounds) {
+    if (blackTotalScore === whiteTotalScore) {
+      alert("Scores are tied! A 5th tie-breaker round will be played.");
+      maxRounds = 5;
+      resetRound();
+    } else {
+      gameEnded = true;
+      let winner = blackTotalScore > whiteTotalScore ? "Black" : "White";
+      alert(`${winner} wins the game!\nFinal Scores:\nBlack: ${blackTotalScore}\nWhite: ${whiteTotalScore}`);
+    }
+  } else {
+    resetRound();
+  }
+}
+
+function updateScoreHistory() {
+  const scoreHistoryDiv = document.getElementById('scoreHistory');
+  if (!scoreHistoryDiv) return;
+  const tbody = scoreHistoryDiv.querySelector('tbody');
+  if (!tbody) return;
+  tbody.innerHTML = scoreHistoryArr.map(
+    s => `<tr>
+      <td style="text-align:center;">${s.round}</td>
+      <td style="text-align:center;">${s.black}</td>
+      <td style="text-align:center;">${s.white}</td>
+    </tr>`
+  ).join('');
+}
+
+function resetRound() {
+  blackPoints = 0;
+  whitePoints = 0;
+  selectedPiece = null;
+  validMoves = [];
+  boardElement.style.pointerEvents = 'auto';
+  // Alternate starting player each round
+  currentPlayer = (round % 2 === 1) ? 2 : 1; // Odd rounds: White starts, Even rounds: Black starts
+  initGame();
+}
+
+initGame();
+
+
 
