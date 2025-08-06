@@ -1,3 +1,5 @@
+
+
 const firebaseConfig = {
   apiKey: "YOUR_API_KEY",
   authDomain: "centurionbattles.firebaseapp.com",

@@ -1,3 +1,5 @@
+import { movesRef, mySessionId } from './firebase-config.js';
+
 movesRef.on("child_added", (snapshot) => {
   const move = snapshot.val();
   if (move.sessionId !== sessionId) {
