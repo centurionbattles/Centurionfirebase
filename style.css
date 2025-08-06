@@ -1,5 +1,42 @@
-body { font-family: sans-serif; background: #eee; text-align: center; }
-#board { display: grid; grid-template-columns: repeat(10, 40px); gap: 2px; justify-content: center; margin: 20px auto; }
-.square { width: 40px; height: 40px; line-height: 40px; font-size: 24px; }
-.light { background-color: #f0d9b5; }
-.dark { background-color: #b58863; }
+body {
+  font-family: sans-serif;
+  text-align: center;
+}
+
+#board {
+  display: grid;
+  grid-template-columns: repeat(10, 60px);
+  grid-template-rows: repeat(10, 60px);
+  margin: 20px auto;
+  width: 600px;
+  height: 600px;
+}
+
+.square {
+  width: 60px;
+  height: 60px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 32px;
+  cursor: pointer;
+}
+
+.light {
+  background-color: #f0d9b5;
+}
+
+.dark {
+  background-color: #b58863;
+}
+
+.highlight {
+  outline: 3px solid yellow;
+}
+
+.valid-move-dot {
+  width: 12px;
+  height: 12px;
+  background-color: rgba(0,0,0,0.5);
+  border-radius: 50%;
+}

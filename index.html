@@ -1,34 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Firebase Multiplayer Chess</title>
-
-  <!-- Firebase SDKs -->
+  <link rel="stylesheet" href="style.css" />
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-
-  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <h1>Centurion Firebase Chess</h1>
-  
   <div id="turnDisplay">Turn: </div>
-  <div id="board"></div>
   <div id="timerDisplay"></div>
-
+  <div id="board"></div>
   <div id="promotionModal" style="display:none;">
     <div id="promotionOptions"></div>
   </div>
-
   <div id="scoreHistory"><table><tbody></tbody></table></div>
   <div id="blackPoints"></div>
   <div id="whitePoints"></div>
   <div id="totalBlackScore"></div>
   <div id="totalWhiteScore"></div>
   <div id="roundNum"></div>
-
-  <!-- Main module loader -->
-  <script type="module" src="game-loop.js"></script>
+  <script type="module" src="./main.js"></script>
 </body>
 </html>
